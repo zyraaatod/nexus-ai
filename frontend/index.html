@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEXUS AI">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>NEXUS AI - Cybersecurity Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+<!-- Sidebar (collapsible) -->
+<aside class="sidebar" id="sidebar" role="navigation" aria-label="Sessions">
+<div class="sidebar-header">
+<div class="logo">
+<i class="ph ph-shield-check"></i>
+<span>NEXUS AI</span>
+</div>
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+<i class="ph ph-chevron-left"></i>
+</button>
+</div>
+
+<nav class="sidebar-nav" aria-label="Sessions">
+<div class="nav-section">
+<span class="nav-section-title">Sessions</span>
+<button class="nav-item new-session" id="newSession" aria-label="New session">
+<i class="ph ph-plus-circle"></i>
+<span>New Session</span>
+</button>
+<div class="sessions-list" id="sessionsList" role="listbox" aria-label="Chat sessions">
+<!-- Sessions rendered here -->
+</div>
+</div>
+</nav>
+
+<div class="sidebar-footer">
+<div class="status-indicator" id="statusIndicator">
+<span class="status-dot" id="statusDot"></span>
+<span class="status-text" id="statusText">Connecting...</span>
+</div>
+<div class="model-info" id="modelInfo">
+<small>Model: <span id="modelName">nvidia/nemotron-3.5-bolt-e4b</span></small>
+</div>
+</div>
+</aside>
+
+<!-- Mobile sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+<!-- Main Chat Area -->
+<main class="main-chat" id="mainChat" role="main">
+<div class="chat-container">
+<div class="chat-header">
+<div class="chat-header-left">
+<button class="sidebar-toggle-mobile" id="sidebarToggleMobile" aria-label="Open sidebar">
+<i class="ph ph-list"></i>
+</button>
+<h1>NEXUS AI</h1>
+<span class="chat-model-badge" id="chatModelBadge">nvidia/nemotron-3.5-bolt-e4b</span>
+</div>
+<div class="chat-header-right">
+<button class="icon-btn" id="attachFile" aria-label="Attach file">
+<i class="ph ph-paperclip"></i>
+</button>
+<button class="icon-btn" id="newChat" aria-label="New chat">
+<i class="ph ph-plus"></i>
+</button>
+<button class="icon-btn" id="openSettings" aria-label="Settings">
+<i class="ph ph-gear-six"></i>
+</button>
+<button class="icon-btn" id="toggleDrawer" aria-label="Toggle tools panel">
+<i class="ph ph-layout"></i>
+</button>
+</div>
+<div class="connection-status" id="chatConnectionStatus">
+<span class="status-dot" id="chatStatusDot"></span>
+<span class="status-text" id="chatStatusText">Connecting...</span>
+</div>
+</div>
+
+<div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Conversation">
+<!-- Messages rendered here -->
+<div class="welcome-message" id="welcomeMessage">
+<div class="welcome-content">
+<div class="welcome-icon"><i class="ph ph-shield-check"></i></div>
+<h2>Welcome to NEXUS AI</h2>
+<p>Your elite cybersecurity assistant for recon, vulnerability research, bug bounty, and red team operations.</</p>
+<div class="welcome-actions">
+<button class="welcome-action" data-prompt="RECON_SUBDOMAIN">
+<i class="ph ph-globe-network"></i>
+<span>Subdomain Recon</span>
+</button>
+<button class="welcome-action" data-prompt="WEB_VULN_SCAN">
+<i class="ph ph-shield-check"></i>
+<span>Web Vuln Scan</span>
+</button>
+<button class="welcome-action" data-prompt="BUG_BOUNTY_WORKFLOW">
+<i class="ph ph-bug"></i>
+<span>Bug Bounty</span>
+</button>
+<button class="welcome-action" data-prompt="OSINT_PERSON">
+<i class="ph ph-user-circle"></i>
+<span>OSINT</span>
+</button>
+</div>
+<p class="welcome-hint">Or ask anything about cybersecurity...</p>
+</div>
+</div>
+</div>
+
+<div class="chat-input-area">
+<div class="prompt-presets" id="promptPresets" aria-label="Quick prompts"></div>
+<div class="input-wrapper">
+<div class="attachments-preview" id="attachmentsPreview" hidden></div>
+<textarea 
+id="chatInput" 
+placeholder="Ask NEXUS AI about recon, vuln scanning, exploitation, bug bounty, OSINT..." 
+rows="1" 
+aria-label="Message input"
+spellcheck="false"></textarea>
+<button class="send-btn" id="sendBtn" aria-label="Send message">
+<i class="ph ph-paper-plane"></i>
+</button>
+</div>
+<div class="input-hints">
+<kbd>Enter</kbd> Send · <kbd>Shift+Enter</kbd> New line · <kbd>↑/↓</kbd> History · <kbd>Cmd/Ctrl+,</kbd> Settings
+</div>
+</div>
+</div>
+</main>
+
+<!-- Right Drawer (Terminal/Tools/Files) -->
+<aside class="drawer" id="rightPane" role="complementary" aria-label="Tools panel">
+<div class="drawer-header">
+<div class="drawer-tabs" id="drawerTabs" role="tablist">
+<button class="drawer-tab active" role="tab" data-pane="terminal" aria-selected="true">
+<i class="ph ph-terminal-window"></i>
+<span>Terminal</span>
+</button>
+<button class="drawer-tab" role="tab" data-pane="files" aria-selected="false">
+<i class="ph ph-folder-open"></i>
+<span>Files</span>
+</button>
+<button class="drawer-tab" role="tab" data-pane="tools" aria-selected="false">
+<i class="ph ph-wrench"></i>
+<span>Tools</span>
+</button>
+</div>
+<button class="icon-btn" id="closeDrawer" aria-label="Close drawer">
+<i class="ph ph-x"></i>
+</button>
+</div>
+
+<div class="drawer-content">
+<!-- Terminal -->
+<div class="drawer-panel active" id="panel-terminal" role="tabpanel" aria-label="Terminal">
+<div class="terminal-container">
+<div class="terminal-tabs" id="terminalTabs" role="tablist">
+<button class="tab-btn active" role="tab" data-tab="main" aria-selected="true">
+<i class="ph ph-terminal"></i>
+<span>Main</span>
+<i class="ph ph-x tab-close" aria-label="Close tab"></i>
+</button>
+<button class="tab-btn add-tab" id="addTab" role="button" aria-label="New terminal tab">
+<i class="ph ph-plus"></i>
+</button>
+</div>
+<div class="terminal-output" id="terminalOutput" role="log" aria-live="polite" aria-label="Terminal output">
+<div class="terminal-line">
+<span class="prompt">nexus@workspace:~$</span>
+<span class="cursor" aria-hidden="true"></span>
+</div>
+</div>
+<div class="terminal-input-wrapper">
+<span class="prompt">nexus@workspace:~$</span>
+<input type="text" id="terminalInput" class="terminal-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Terminal command input" placeholder="Type a command...">
+</div>
+</div>
+</div>
+
+<!-- Files -->
+<div class="drawer-panel" id="panel-files" role="tabpanel" aria-label="Files">
+<div class="files-container">
+<div class="files-header">
+<h2>Workspace Files</h2>
+<div class="files-actions">
+<button class="btn secondary" id="newFile" aria-label="New file">
+<i class="ph ph-file-plus"></i>
+<span>New File</span>
+</button>
+<button class="btn secondary" id="newFolder" aria-label="New folder">
+<i class="ph ph-folder-plus"></i>
+<span>New Folder</span>
+</button>
+<button class="btn secondary" id="refreshFiles" aria-label="Refresh">
+<i class="ph ph-arrow-clockwise"></i>
+</button>
+<button class="btn secondary" id="uploadFile" aria-label="Upload file">
+<i class="ph ph-upload"></i>
+<input type="file" id="fileUpload" multiple style="display:none" aria-hidden="true">
+</button>
+</div>
+</div>
+<div class="files-tree" id="filesTree" role="tree" aria-label="File tree"></div>
+<div class="file-editor" id="fileEditor" aria-label="File editor" hidden>
+<div class="editor-header">
+<span class="editor-path" id="editorPath"></span>
+<div class="editor-actions">
+<button class="icon-btn" id="saveFile" aria-label="Save file"><i class="ph ph-floppy-disk"></i></button>
+<button class="icon-btn" id="closeEditor" aria-label="Close editor"><i class="ph ph-x"></i></button>
+</div>
+</div>
+<textarea id="editorContent" class="editor-content" spellcheck="false" aria-label="File content"></textarea>
+</div>
+</div>
+</div>
+
+<!-- Tools -->
+<div class="drawer-panel" id="panel-tools" role="tabpanel" aria-label="Tools">
+<div class="tools-container">
+<div class="tools-header">
+<h2>Security Toolkit</h2>
+<div class="tools-search">
+<input type="text" id="toolsSearch" placeholder="Search tools..." aria-label="Search tools">
+</div>
+</div>
+<div class="tools-grid" id="toolsGrid" role="list" aria-label="Available tools"></div>
+</div>
+</div>
+</div>
+</aside>
+
+<!-- Mobile bottom nav -->
+<nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+<button class="nav-btn active" data-action="chat" aria-label="Chat">
+<i class="ph ph-chat-circle-text"></i>
+</button>
+<button class="nav-btn" data-action="drawer" data-drawer="terminal" aria-label="Terminal">
+<i class="ph ph-terminal-window"></i>
+</button>
+<button class="nav-btn" data-action="drawer" data-drawer="files" aria-label="Files">
+<i class="ph ph-folder-open"></i>
+</button>
+<button class="nav-btn" data-action="drawer" data-drawer="tools" aria-label="Tools">
+<i class="ph ph-wrench"></i>
+</button>
+</nav>
+
+<!-- Toast notifications -->
+<div class="toast-container" id="toastContainer" aria-live="polite" aria-label="Notifications"></div>
+
+<!-- Modal (General) -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+<div class="modal" id="modal">
+<div class="modal-header">
+<h3 id="modalTitle"></h3>
+<button class="modal-close" id="modalClose" aria-label="Close"><i class="ph ph-x"></i></button>
+</div>
+<div class="modal-body" id="modalBody"></div>
+<div class="modal-footer" id="modalFooter"></div>
+</div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+<div class="modal settings-modal" id="settingsModal">
+<div class="modal-header">
+<h3><i class="ph ph-gear-six"></i> Settings</h3>
+<button class="modal-close" id="settingsClose" aria-label="Close settings"><i class="ph ph-x"></i></button>
+</div>
+<div class="modal-body settings-body" id="settingsBody">
+<div class="settings-tabs" id="settingsTabs" role="tablist">
+<button class="tab-btn active" role="tab" data-tab="general" aria-selected="true"><i class="ph ph-sliders-horizontal"></i><span>General</span></button>
+<button class="tab-btn" role="tab" data-tab="ai" aria-selected="false"><i class="ph ph-robot"></i><span>AI Model</span></button>
+<button class="tab-btn" role="tab" data-tab="terminal" aria-selected="false"><i class="ph ph-terminal-window"></i><span>Terminal</span></button>
+<button class="tab-btn" role="tab" data-tab="session" aria-selected="false"><i class="ph ph-clock-counter-clockwise"></i><span>Session</span></button>
+<button class="tab-btn" role="tab" data-tab="advanced" aria-selected="false"><i class="ph ph-wrench"></i><span>Advanced</span></button>
+</div>
+<div class="settings-panels">
+<div class="settings-panel active" id="panel-general" role="tabpanel">
+<div class="setting-group"><h4><i class="ph ph-wifi-high"></i> Connection</h4>
+<div class="setting-row"><label>Auto-connect on startup</label><input type="checkbox" id="autoConnect" checked></div>
+<div class="setting-row"><label>Reconnect on disconnect</label><input type="checkbox" id="reconnectEnabled" checked></div>
+<div class="setting-row"><label>Connection timeout (seconds)</label><input type="number" id="connectionTimeout" value="30" min="5" max="120"></div></div>
+<div class="setting-group"><h4><i class="ph ph-chat-circle-text"></i> Chat Behavior</h4>
+<div class="setting-row"><label>Stream responses</label><input type="checkbox" id="streamResponses" checked></div>
+<div class="setting-row"><label>Show timestamps</label><input type="checkbox" id="showTimestamps" checked></div>
+<div class="setting-row"><label>Auto-scroll to bottom</label><input type="checkbox" id="autoScroll" checked></div>
+<div class="setting-row"><label>Enter to send, Shift+Enter for new line</label><input type="checkbox" id="enterToSend" checked></div>
+<div class="setting-row"><label>Save chat history locally</label><input type="checkbox" id="saveHistory" checked></div>
+<div class="setting-row"><label>Max history messages</label><input type="number" id="maxHistory" value="100" min="10" max="1000"></div></div>
+<div class="setting-group"><h4><i class="ph ph-palette"></i> Appearance</h4>
+<div class="setting-row"><label>Theme</label><select id="themeSelect"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></div>
+<div class="setting-row"><label>Font size</label><select id="fontSizeSelect"><option value="13">Small (13px)</option><option value="14" selected>Medium (14px)</option><option value="16">Large (16px)</option></select></div>
+<div class="setting-row"><label>Compact mode</label><input type="checkbox" id="compactMode"></div>
+<div class="setting-row"><label>Show avatars</label><input type="checkbox" id="showAvatars" checked></div></div></div>
+<div class="settings-panel" id="panel-ai" role="tabpanel" hidden>
+<div class="setting-group"><h4><i class="ph ph-robot"></i> Model Configuration</h4>
+<div class="setting-row"><label>Provider</label><select id="providerSelect"><option value="nvidia">NVIDIA</option><option value="openai">OpenAI Compatible</option></select></div>
+<div class="setting-row"><label>Base URL</label><input type="url" id="baseUrlInput" placeholder="https://integrate.api.nvidia.com/v1"></div>
+<div class="setting-row"><label>Model</label><input type="text" id="modelInput" placeholder="nvidia/nemotron-3.5-bolt-e4b"></div>
+<div class="setting-row"><label>API Key</label><div class="input-with-toggle"><input type="password" id="apiKeyInput" placeholder="Enter API key"><button class="icon-btn" id="toggleApiKey" aria-label="Show/hide API key"><i class="ph ph-eye"></i></button></div><small class="setting-hint">API key is stored locally in browser only</small></div>
+<div class="setting-row"><label>Temperature</label><input type="range" id="temperatureInput" min="0" max="2" step="0.1" value="0.7"><span class="range-value" id="temperatureValue">0.7</span></div>
+<div class="setting-row"><label>Max tokens</label><input type="number" id="maxTokensInput" value="4096" min="512" max="32768" step="512"></div>
+<div class="setting-row"><label>Top P</label><input type="range" id="topPInput" min="0" max="1" step="0.05" value="1"><span class="range-value" id="topPValue">1.0</span></div></div>
+<div class="setting-group"><h4><i class="ph ph-shield-check"></i> System Prompt</h4>
+<div class="setting-row"><textarea id="systemPromptInput" rows="6" placeholder="Custom system prompt (leave empty for default)"></textarea></div>
+<button class="btn secondary" id="resetSystemPrompt"><i class="ph ph-arrow-counter-clockwise"></i> Reset to Default</button></div>
+<div class="setting-group"><h4><i class="ph ph-lightning"></i> Quick Actions</h4>
+<div class="btn-group"><button class="btn secondary" id="testConnection"><i class="ph ph-wifi-high"></i> Test Connection</button><button class="btn secondary" id="loadDefaultPrompt"><i class="ph ph-file-text"></i> Load Default Prompt</button></div></div></div>
+<div class="settings-panel" id="panel-terminal" role="tabpanel" hidden>
+<div class="setting-group"><h4><i class="ph ph-terminal-window"></i> Terminal Behavior</h4>
+<div class="setting-row"><label>Default shell</label><select id="defaultShell"><option value="bash">Bash</option><option value="zsh">Zsh</option><option value="fish">Fish</option><option value="sh">POSIX sh</option></select></div>
+<div class="setting-row"><label>Command timeout (seconds)</label><input type="number" id="cmdTimeout" value="300" min="30" max="3600"></div>
+<div class="setting-row"><label>Max output lines</label><input type="number" id="maxOutputLines" value="10000" min="1000" max="100000"></div>
+<div class="setting-row"><label>Scrollback buffer</label><input type="number" id="scrollbackBuffer" value="5000" min="1000" max="50000"></div>
+<div class="setting-row"><label>Auto-reconnect on disconnect</label><input type="checkbox" id="termReconnect" checked></div>
+<div class="setting-row"><label>Bell sound on completion</label><input type="checkbox" id="termBell"></div>
+<div class="setting-row"><label>Copy on select</label><input type="checkbox" id="copyOnSelect" checked></div></div>
+<div class="setting-group"><h4><i class="ph ph-keyboard"></i> Keybindings</h4>
+<div class="setting-row"><label>Ctrl+C to interrupt</label><input type="checkbox" id="ctrlCInterrupt" checked></div>
+<div class="setting-row"><label>Tab for completion</label><input type="checkbox" id="tabCompletion" checked></div>
+<div class="setting-row"><label>Alt+Click to move cursor</label><input type="checkbox" id="altClickMove" checked></div></div>
+<div class="setting-group"><h4><i class="ph ph-terminal"></i> Appearance</h4>
+<div class="setting-row"><label>Font family</label><select id="termFontFamily"><option value="jetbrains">JetBrains Mono</option><option value="fira">Fira Code</option><option value="monospace">Monospace</option><option value="cascadia">Cascadia Code</option></select></div>
+<div class="setting-row"><label>Font size</label><input type="number" id="termFontSize" value="13" min="10" max="20"></div>
+<div class="setting-row"><label>Line height</label><input type="range" id="termLineHeight" min="1.2" max="2" step="0.1" value="1.6"><span class="range-value" id="termLineHeightValue">1.6</span></div>
+<div class="setting-row"><label>Cursor blink</label><input type="checkbox" id="cursorBlink" checked></div>
+<div class="setting-row"><label>Cursor style</label><select id="cursorStyle"><option value="block">Block</option><option value="underline">Underline</option><option value="bar">Bar</option></select></div></div></div>
+<div class="settings-panel" id="panel-session" role="tabpanel" hidden>
+<div class="setting-group"><h4><i class="ph ph-clock-counter-clockwise"></i> Current Session</h4>
+<div class="session-info">
+<div class="info-row"><span class="info-label">Session ID</span><span class="info-value" id="sessionId">-</span></div>
+<div class="info-row"><span class="info-label">Started</span><span class="info-value" id="sessionStarted">-</span></div>
+<div class="info-row"><span class="info-label">Messages</span><span class="info-value" id="sessionMessages">0</span></div>
+<div class="info-row"><span class="info-label">Commands run</span><span class="info-value" id="sessionCommands">0</span></div>
+<div class="info-row"><span class="info-label">Files accessed</span><span class="info-value" id="sessionFiles">0</span></div></div>
+<div class="btn-group"><button class="btn secondary" id="exportSession"><i class="ph ph-download"></i> Export Session</button><button class="btn secondary" id="clearSession"><i class="ph ph-trash"></i> Clear Session</button></div></div>
+<div class="setting-group"><h4><i class="ph ph-list-bullets"></i> Session History</h4>
+<div class="setting-row"><label>Auto-save sessions</label><input type="checkbox" id="autoSaveSession" checked></div>
+<div class="setting-row"><label>Max saved sessions</label><input type="number" id="maxSessions" value="50" min="5" max="200"></div>
+<div class="setting-row"><label>Auto-load last session</label><input type="checkbox" id="autoLoadSession"></div>
+<div class="setting-row"><label>Include terminal output in export</label><input type="checkbox" id="includeTerminalOutput" checked></div>
+<div class="btn-group"><button class="btn secondary" id="viewSessions"><i class="ph ph-list"></i> Manage Sessions</button><button class="btn secondary" id="clearAllSessions"><i class="ph ph-trash"></i> Clear All History</button></div></div>
+<div class="setting-group"><h4><i class="ph ph-shield-check"></i> Privacy</h4>
+<div class="setting-row"><label>Store conversations locally</label><input type="checkbox" id="storeLocally" checked></div>
+<div class="setting-row"><label>Encrypt local storage</label><input type="checkbox" id="encryptStorage"></div>
+<div class="setting-row"><label>Send anonymous usage stats</label><input type="checkbox" id="anonymousStats"></div>
+<button class="btn danger" id="wipeAllData"><i class="ph ph-trash"></i> Wipe All Local Data</button></div></div>
+<div class="settings-panel" id="panel-advanced" role="tabpanel" hidden>
+<div class="setting-group"><h4><i class="ph ph-cpu"></i> Feature Flags</h4>
+<div class="setting-row"><label>Enable terminal</label><input type="checkbox" id="featTerminal" checked></div>
+<div class="setting-row"><label>Enable file operations</label><input type="checkbox" id="featFiles" checked></div>
+<div class="setting-row"><label>Enable network tools</label><input type="checkbox" id="featNetwork" checked></div>
+<div class="setting-row"><label>Enable web tools</label><input type="checkbox" id="featWeb" checked></div>
+<div class="setting-row"><label>Enable crypto tools</label><input type="checkbox" id="featCrypto" checked></div>
+<div class="setting-row"><label>Enable cloud tools</label><input type="checkbox" id="featCloud" checked></div>
+<div class="setting-row"><label>Enable K8s tools</label><input type="checkbox" id="featK8s" checked></div></div>
+<div class="setting-group"><h4><i class="ph ph-bug"></i> Debug</h4>
+<div class="setting-row"><label>Debug mode</label><input type="checkbox" id="debugMode"></div>
+<div class="setting-row"><label>Log level</label><select id="logLevel"><option value="debug">Debug</option><option value="info" selected>Info</option><option value="warn">Warn</option><option value="error">Error</option></select></div>
+<div class="setting-row"><label>Show request/response logs</label><input type="checkbox" id="showLogs"></div>
+<div class="setting-row"><label>Enable performance monitoring</label><input type="checkbox" id="perfMonitor"></div></div>
+<div class="setting-group"><h4><i class="ph ph-database"></i> Data Management</h4>
+<div class="btn-group"><button class="btn secondary" id="exportAllData"><i class="ph ph-download"></i> Export All Data</button><button class="btn secondary" id="importData"><i class="ph ph-upload"></i> Import Data</button><input type="file" id="importFile" accept=".json" style="display:none"></div>
+<div class="setting-row"><label>Auto-backup interval (hours, 0=off)</label><input type="number" id="backupInterval" value="24" min="0" max="168"></div>
+<div class="setting-row"><label>Max backup files</label><input type="number" id="maxBackups" value="10" min="1" max="50"></div></div>
+<div class="setting-group"><h4><i class="ph ph-arrow-clockwise"></i> Reset</h4>
+<div class="btn-group"><button class="btn secondary" id="resetSettings"><i class="ph ph-arrow-counter-clockwise"></i> Reset Settings to Default</button><button class="btn danger" id="factoryReset"><i class="ph ph-shield-warning"></i> Factory Reset (All Data)</button></div></div></div></div>
+<div class="modal-footer settings-footer"><button class="btn secondary" id="settingsCancel">Cancel</button><button class="btn primary" id="settingsSave"><i class="ph ph-floppy-disk"></i> Save Settings</button></div>
+</div>
+</div>
+</div>
+
+<!-- Toast notifications -->
+<div class="toast-container" id="toastContainer" aria-live="polite" aria-label="Notifications"></div>
+
+<!-- Modal (General) -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+<div class="modal" id="modal">
+<div class="modal-header">
+<h3 id="modalTitle"></h3>
+<button class="modal-close" id="modalClose" aria-label="Close"><i class="ph ph-x"></i></button>
+</div>
+<div class="modal-body" id="modalBody"></div>
+<div class="modal-footer" id="modalFooter"></div>
+</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

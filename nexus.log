@@ -1,0 +1,38 @@
+INFO:     Started server process [8896]
+INFO:     Waiting for application startup.
+2026-11-15 08:48:42,546 - backend.app.main - INFO - NEXUS AI Cybersecurity Assistant starting up...
+2026-11-15 08:48:42,547 - backend.app.main - INFO - Workspace: /storage/emulated/0/Documents/nexus-ai/storage/workspace
+2026-11-15 08:48:42,547 - backend.app.main - INFO - Prompts loaded: ['NAME--- delimiter', 'SYSTEM---', 'RECON_SUBDOMAIN---', 'RECON_INFRASTRUCTURE---', 'WEB_VULN_SCAN---', 'API_SECURITY---', 'NETWORK_ATTACK---', 'OSINT_PERSON---', 'REPORT_WRITING---', 'TERMINAL_GUIDE---', 'BUG_BOUNTY_WORKFLOW---', 'RED_TEAM---', 'CTF_GUIDE---', 'VULN_RESEARCH---', 'TOOL_CHEATSHEET---', 'TERMINAL_EXECUTE---']
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:45324 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51068 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39178 - "GET /api/prompts/SYSTEM--- HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39190 - "GET /api/files/list HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39202 - "GET /api/jobs HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39214 - "POST /api/files/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58896 - "GET /api/jobs HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58900 - "GET /api/jobs/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58914 - "GET /api/jobs HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49464 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49468 - "GET /style.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49470 - "GET /app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47654 - "WebSocket /ws/test-client" [accepted]
+INFO:     connection open
+2026-11-15 08:49:47,660 - backend.app.main - INFO - Client connected: test-client
+2026-11-15 08:49:57,643 - backend.app.main - INFO - Client disconnected: test-client
+INFO:     127.0.0.1:38906 - "POST /api/files/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45228 - "GET /manifest.json HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:38906 - "GET /icon-192.png HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:38906 - "GET /favicon.ico HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:38906 - "GET / HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:38906 - "GET /style.css HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:38918 - "GET /app.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:38918 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38906 - "POST /api/files/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38918 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-11-15 08:51:55,222 - backend.app.main - INFO - NEXUS AI shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [8896]

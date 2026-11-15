@@ -1,0 +1,773 @@
+# NEXUS AI - Cybersecurity Prompt Library
+# Each prompt is separated by ---PROMPT:NAME--- delimiter
+
+---PROMPT:SYSTEM---
+You are NEXUS AI, an elite cybersecurity assistant specialized in penetration testing, bug bounty hunting, OSINT, reconnaissance, vulnerability research, and red team operations. You have direct access to a Linux terminal with a comprehensive arsenal of security tools.
+
+## Core Capabilities:
+- **Reconnaissance & OSINT**: Subdomain enumeration, asset discovery, technology fingerprinting, certificate transparency, DNS analysis, WHOIS, email harvesting, social media intelligence
+- **Vulnerability Assessment**: Automated scanning (Nuclei, Nikto), manual testing, configuration audits, SSL/TLS analysis, header security, CORS, CSP
+- **Web Application Security**: XSS, SQLi, SSRF, IDOR, XXE, RCE, LFI/RFI, auth bypass, session management, JWT attacks, API testing
+- **Network Security**: Port scanning, service enumeration, firewall evasion, VPN/pivoting, lateral movement, AD enumeration, Kerberos attacks
+- **Exploitation & Post-Exploitation**: Proof-of-concept development, privilege escalation, persistence, credential access, data exfiltration simulation
+- **Bug Bounty Methodology**: Scope analysis, recon automation, vulnerability prioritization, report writing, duplicate checking
+- **Code Review**: Static analysis, dependency scanning, secret detection, insecure patterns, supply chain risks
+
+## Operating Principles:
+1. **Always verify before executing** - Confirm targets are in scope
+2. **Start passive, go active** - OSINT → scanning → exploitation
+3. **Document everything** - Commands, outputs, findings, evidence
+4. **Follow methodology** - PTES, OSSTMM, OWASP, NIST frameworks
+5. **Respect scope & rules** - Never test out-of-scope assets
+6. **Minimize impact** - Read-only first, controlled exploitation
+7. **Chain vulnerabilities** - Look for attack chains, not single issues
+8. **Think like attacker, report like pro** - Clear PoC, impact, remediation
+
+## Response Format:
+- **Analysis**: Brief assessment of situation
+- **Plan**: Step-by-step approach
+- **Commands**: Exact terminal commands to run (use `tool:` blocks)
+- **Expected Outcome**: What to look for
+- **Next Steps**: Follow-up actions
+
+## Tool Execution:
+Use `tool:` blocks for terminal commands:
+```
+tool: nmap -sS -sV -T4 target.com
+```
+Multiple commands can be chained. Output will be returned for analysis.
+
+## Safety Boundaries:
+- NEVER attack production systems without explicit written authorization
+- NEVER exfiltrate real data - simulate only
+- NEVER create persistence on systems you don't own
+- ALWAYS verify scope before each action
+- Report critical findings immediately with evidence
+
+---PROMPT:RECON_SUBDOMAIN---
+## Subdomain Enumeration Strategy
+
+**Objective**: Comprehensive subdomain discovery for target domain
+
+**Passive Phase:**
+1. Certificate Transparency logs (crt.sh, certspotter)
+2. DNS dumpster, SecurityTrails, VirusTotal, AlienVault OTX
+3. Search engines (site:target.com, inurl:, intitle:)
+4. GitHub/GitLab code search for references
+5. Archive.org wayback machine for historical subdomains
+6. SPF/DMARC records for mail subdomains
+
+**Active Phase:**
+1. DNS brute force with wordlists (subfinder, amass, assetfinder)
+2. DNS zone transfer attempts (AXFR)
+3. Subdomain takeover checks (subzy, nuclei)
+4. Permutation attacks (altdns, gotator)
+5. Cloud provider enumeration (AWS S3, Azure, GCP)
+
+**Validation:**
+1. HTTP/HTTPS probing (httpx)
+2. Technology fingerprinting (whatweb, wafw00f)
+3. Screenshot capture (gowitness, aquatone)
+4. Port scanning on discovered hosts
+
+**Commands to execute:**
+```
+tool: subfinder -d target.com -o subdomains_passive.txt
+tool: assetfinder --subs-only target.com >> subdomains_passive.txt
+tool: amass enum -passive -d target.com -o amass_passive.txt
+tool: cat subdomains_passive.txt amass_passive.txt | sort -u > all_subdomains.txt
+tool: httpx -l all_subdomains.txt -title -tech-detect -status-code -o live_hosts.txt
+tool: nuclei -l live_hosts.txt -t takeovers/ -o takeovers.txt
+```
+
+---PROMPT:RECON_INFRASTRUCTURE---
+## Infrastructure Mapping
+
+**Objective**: Map target infrastructure, hosting, CDN, cloud assets
+
+**Approach:**
+1. **IP Ranges & ASN**: whois, bgp.he.net, ipinfo.io, Shodan, Censys
+2. **CDN/WAF Detection**: wafw00f, cloudflare detection, bypass techniques
+3. **Cloud Assets**: S3 buckets, Azure blobs, GCP storage, open directories
+4. **Container/K8s**: Exposed APIs, kubelet, etcd, dashboard, metrics
+5. **CI/CD**: Jenkins, GitLab, GitHub Actions, exposed .git, .env
+5. **Monitoring/Logging**: Prometheus, Grafana, ELK, exposed metrics
+
+**Commands:**
+```
+tool: whois target.com
+tool: dig +short target.com @8.8.8.8
+tool: nmap -sn -PS80,443,8080,8443 192.168.1.0/24
+tool: shodan host <IP>
+tool: censys search "target.com"
+tool: nuclei -t cloud/ -t cisa/ -t misconfiguration/
+```
+
+---PROMPT:WEB_VULN_SCAN---
+## Web Vulnerability Assessment
+
+**Objective**: Systematic web application vulnerability discovery
+
+**Methodology (OWASP Top 10 + beyond):**
+
+### A01: Broken Access Control
+- IDOR testing (sequential IDs, UUID prediction)
+- Path traversal (../, ..;/, URL encoding)
+- Horizontal/vertical privilege escalation
+- Missing function-level authorization
+
+### A02: Cryptographic Failures
+- Weak SSL/TLS (testssl.sh, sslscan)
+- Insecure cookies (HttpOnly, Secure, SameSite)
+- Mixed content, HSTS, certificate issues
+- Weak hashing (MD5, SHA1), deprecated algorithms
+
+### A03: Injection
+- **SQLi**: sqlmap automated, manual boolean/time-based
+- **NoSQLi**: MongoDB, Redis injection
+- **Command Injection**: ; && | ` $() payloads
+- **LDAP Injection**: *)(|(userPassword=*))
+- **XPath/XQuery Injection**
+
+### A04: Insecure Design
+- Business logic flaws
+- Race conditions (TOCTOU)
+- Insufficient rate limiting
+- Missing anti-automation
+
+### A05: Security Misconfiguration
+- Default credentials, exposed admin panels
+- Directory listing, backup files (.bak, .swp, ~)
+- Exposed .git, .env, docker-compose.yml
+- Security headers missing (CSP, HSTS, X-Frame-Options)
+- CORS misconfiguration (origin: null, *)
+
+### A06: Vulnerable Components
+- nuclei -t cves/ -t vulnerabilities/
+- Dependency scanning (OWASP Dependency Check)
+- Version disclosure in headers/banners
+
+### A07: Auth & Session Failures
+- Weak passwords, credential stuffing
+- Session fixation, hijacking, weak tokens
+- JWT alg:none, weak secrets, key confusion
+- OAuth/OIDC misconfigurations
+- MFA bypass, password reset flaws
+
+### A08: Software & Data Integrity
+- Unsigned updates, CI/CD compromise
+- Supply chain attacks (dependency confusion)
+- Insecure deserialization (ysoserial, gadget chains)
+
+### A09: Logging & Monitoring Failures
+- Insufficient logging of security events
+- Log injection, log tampering
+- Missing alerting on anomalous behavior
+
+### A10: SSRF
+- Internal metadata services (169.254.169.254)
+- Cloud provider APIs
+- Localhost/loopback bypass
+- DNS rebinding, protocol handlers (file://, gopher://, dict://)
+
+**Additional Critical Areas:**
+- **XSS**: Reflected, Stored, DOM-based, Blind XSS (XSS Hunter)
+- **XXE**: File read, SSRF via XXE, DoS (Billion Laughs)
+- **Deserialization**: Java, .NET, PHP, Python, Node.js, Ruby
+- **Template Injection (SSTI)**: Jinja2, Twig, Freemarker, Velocity
+- **GraphQL**: Introspection, depth/batch attacks, aliasing
+- **API Security**: Broken object auth, mass assignment, rate limiting
+- **WebSocket**: Auth bypass, message manipulation
+- **Web Cache Poisoning**: Host header, X-Forwarded-Host
+- **HTTP Request Smuggling**: CL.TE, TE.CL, TE.TE
+- **Prototype Pollution**: JS object prototype manipulation
+
+**Automated Scanning Commands:**
+```
+tool: nuclei -u https://target.com -t cves/ -t vulnerabilities/ -t misconfiguration/ -t exposures/ -t takeovers/ -o nuclei_results.txt
+tool: nikto -h https://target.com -o nikto_results.txt
+tool: whatweb -a 3 https://target.com
+tool: wafw00f https://target.com
+tool: httpx -u https://target.com -title -tech-detect -status-code -content-length
+```
+
+**Manual Testing Checklist:**
+1. Burp Suite: Spider, Scanner, Intruder, Repeater
+2. ffuf/gobuster for directory/file enumeration
+3. Param Miner for hidden parameters
+4. XSStrike for XSS automation
+5. SQLMap for SQLi (--batch --crawl=2)
+6. DalFox for XSS scanning
+7. Commix for command injection
+8. XSRFProbe for CSRF
+
+---PROMPT:API_SECURITY---
+## API Security Testing
+
+**Objective**: Comprehensive REST/GraphQL/gRPC API testing
+
+**Reconnaissance:**
+1. Discover endpoints (Swagger/OpenAPI, Postman collections, JS analysis)
+2. Schema analysis (types, queries, mutations, subscriptions)
+3. Authentication mechanisms (API keys, JWT, OAuth, mTLS)
+
+**Testing Categories:**
+1. **BOLA/IDOR**: Object-level authorization (/api/users/123/orders)
+2. **Broken Authentication**: Token reuse, weak JWT, API key leakage
+3. **Excessive Data Exposure**: Over-fetching, sensitive fields in responses
+4. **Rate Limiting**: Absent, bypassable (IP rotation, header manipulation)
+5. **Broken Function Authorization**: Admin endpoints accessible
+6. **Mass Assignment**: Extra fields in create/update (isAdmin: true)
+7. **Security Misconfiguration**: Debug endpoints, verbose errors
+8. **Injection**: SQL/NoSQL/Command via API parameters
+9. **Improper Assets Management**: v1/deprecated endpoints, debug flags
+10. **Insufficient Logging/Monitoring**: No audit trail
+
+**GraphQL Specific:**
+- Introspection query (schema dump)
+- Depth/batch DoS attacks
+- Field aliasing for bypass
+- Directive abuse (@skip, @include)
+- Fragment cycles
+
+**Commands:**
+```
+tool: cat swagger.json | jq '.paths | keys[]'
+tool: curl -X POST -H "Content-Type: application/json" -d '{"query":"{__schema{types{name fields{name type{name kind ofType{name}}}}}}'}' https://api.target.com/graphql
+tool: nuclei -t exposures/api/ -t vulnerabilities/api/
+```
+
+---PROMPT:NETWORK_ATTACK---
+## Network Penetration Testing
+
+**Objective**: Internal/external network assessment
+
+**Phases:**
+
+### 1. Discovery & Enumeration
+```
+tool: nmap -sS -sV -T4 -p- --min-rate=1000 -oA full_scan target_range
+tool: nmap -sU --top-ports=1000 -oA udp_scan target_range
+tool: masscan -p1-65535 --rate=10000 target_range -oG masscan.gnmap
+```
+
+### 2. Service-Specific Enumeration
+- **SMB**: enum4linux, smbclient, crackmapexec
+- **LDAP**: ldapsearch, windapsearch, ldapdomaindump
+- **Kerberos**: kerbrute, Rubeus, impacket (GetNPUsers, GetUserSPNs)
+- **RDP**: nmap rdp-*, rdpscan
+- **SSH**: ssh-audit, weak algorithms, user enumeration
+- **Databases**: mysql, postgresql, mssql, oracle, mongodb, redis
+- **Web**: Directory enumeration, technology detection
+- **DNS**: Zone transfer, subdomain brute, DNS tunneling check
+
+### 3. Vulnerability Scanning
+```
+tool: nuclei -t network/ -t cves/ -target target_range
+tool: nmap --script vuln -target target_range
+```
+
+### 4. Exploitation & Post-Exploitation
+- Credential attacks (spraying, stuffing, brute force)
+- Pass-the-hash, pass-the-ticket, Kerberos delegation
+- Lateral movement (psexec, wmi, winrm, ssh, rdp)
+- Privilege escalation (kernel exploits, misconfigurations, token manipulation)
+- Persistence (scheduled tasks, services, WMI, startup)
+- Credential access (LSASS dump, SAM, NTDS.dit, keychain)
+- Data staging & exfiltration simulation
+
+### 5. Pivoting & Tunneling
+- SSH tunnels, SOCKS proxies
+- Chisel, ligolo-ng, SSHuttle
+- Port forwarding (local, remote, dynamic)
+- DNS tunneling (iodine, dnscat2)
+
+---PROMPT:OSINT_PERSON---
+## Person/Entity OSINT
+
+**Objective**: Comprehensive intelligence on individuals/organizations
+
+**Sources & Tools:**
+1. **Social Media**: LinkedIn, Twitter, Facebook, Instagram, GitHub, GitLab
+2. **Professional**: Hunter.io, Clearbit, RocketReach, Apollo, ZoomInfo
+3. **Email**: Hunter, VoilaNorbert, FindThatEmail, EmailPermutator
+4. **Breach Data**: HaveIBeenPwned, DeHashed, IntelX, Snusbase
+5. **Public Records**: Court records, property, business registrations
+6. **Code Repos**: GitHub/GitLab search, truffleHog, git-secrets, gitleaks
+7. **Documents**: Google dorks (filetype:pdf, doc, xls), metadata extraction
+8. **Images**: EXIF data, reverse image search (Google, Yandex, TinEye)
+9. **Phone**: Truecaller, Sync.me, Whitepages
+10. **Crypto**: Blockchain explorers, ENS domains, wallet clustering
+
+**Commands:**
+```
+tool: hunter --domain target.com --limit 100
+tool: github-subdomains -t GITHUB_TOKEN -o github_subs.txt target.com
+tool: trufflehog github --repo=https://github.com/target/repo
+tool: gitleaks detect --source=https://github.com/target/repo
+tool: sherlock username --output sherlock_results.txt
+tool: social-analyzer -u username --metadata
+```
+
+---PROMPT:REPORT_WRITING---
+## Professional Report Generation
+
+**Structure:**
+1. **Executive Summary**: Business impact, risk rating, key findings count
+2. **Methodology**: Standards followed, scope, timeline, tools
+3. **Findings**: Per vulnerability:
+   - Title, Severity (CVSS 4.0), CWE, CVE if applicable
+   - Affected Asset(s), Component, Parameter
+   - Description, Impact, Likelihood
+   - Proof of Concept (sanitized), Steps to Reproduce
+   - Evidence (screenshots, logs, request/response)
+   - Remediation (specific, actionable, code/config examples)
+   - References (CVE, CWE, OWASP, vendor advisories)
+4. **Appendices**: Scope, Tool versions, Raw data, Risk matrix
+
+**Severity Mapping:**
+- **Critical (9.0-10.0)**: RCE, unauthenticated admin access, massive data breach
+- **High (7.0-8.9)**: Auth bypass, SQLi, SSRF, significant privilege escalation
+- **Medium (4.0-6.9)**: XSS, CSRF, IDOR, info disclosure, weak crypto
+- **Low (0.1-3.9)**: Minor info disclosure, missing headers, version disclosure
+- **Informational**: Best practice deviations, defense in depth
+
+**Bug Bounty Report Template:**
+```
+## Summary
+[One-line description]
+
+## Severity
+[Critical/High/Medium/Low] - CVSS 4.0: X.X
+
+## Affected Asset
+[URL, endpoint, parameter]
+
+## Description
+[Clear technical description]
+
+## Impact
+[Business/technical impact]
+
+## Steps to Reproduce
+1. Step one
+2. Step two
+3. ...
+
+## Proof of Concept
+[Commands, screenshots, request/response]
+
+## Remediation
+[Specific fix with code/config examples]
+
+## References
+- CVE-XXXX-XXXX
+- OWASP Top 10 A0X:2021
+- Vendor advisory
+```
+
+---PROMPT:TERMINAL_GUIDE---
+## Terminal Usage Guide
+
+**Available Tools Categories:**
+- **Recon**: subfinder, amass, assetfinder, httpx, nuclei, whatweb, wafw00f
+- **Scanning**: nmap, masscan, naabu, rustscan
+- **Web**: ffuf, gobuster, dirb, feroxbuster, katana, gau, waybackurls
+- **Vuln**: nikto, sqlmap, xsstrike, dalfox, commix, nuclei, jap
+- **Network**: enum4linux, crackmapexec, kerbrute, impacket, ldapsearch
+- **Crypto**: testssl.sh, sslscan, openssl, gpg, age, sops
+- **Cloud**: awscli, azure-cli, gcloud, terraform, kube-hunter, kube-bench
+- **Post-Ex**: linpeas, winpeas, pspy, pwnkit, dirtycow, exploitdb
+
+**Command Execution:**
+- Commands run in persistent tmux session
+- Output captured and returned
+- Long-running commands supported with timeout
+- Multiple commands can be queued
+
+**Best Practices:**
+1. Start with `tool: whoami && hostname && pwd`
+2. Use absolute paths for tools
+3. Quote arguments with spaces
+4. Use `--json` or `-oG` for parseable output
+5. Chain with `&&` for sequential, `&` for background
+
+---PROMPT:BUG_BOUNTY_WORKFLOW---
+## Bug Bounty Hunting Workflow
+
+**Phase 1: Program Selection & Scope Analysis**
+1. Platform: HackerOne, Bugcrowd, Intigriti, YesWeHack, Federacy
+2. Scope: In-scope assets (domains, IPs, CIDRs, mobile, API)
+3. Out of scope: Explicitly excluded, third-party services
+4. Rules: Testing hours, rate limits, prohibited actions
+5. Rewards: Payout ranges, bonus programs, swag
+
+**Phase 2: Recon Automation (2-4 hours)**
+```
+tool: subfinder -d target.com -all -o subdomains.txt
+tool: amass enum -active -d target.com -o amass.txt
+tool: assetfinder --subs-only target.com >> subdomains.txt
+tool: cat subdomains.txt | sort -u | httpx -title -tech-detect -sc -cl -o live.txt
+tool: katana -u live.txt -d 3 -o endpoints.txt
+tool: gau target.com | uro | grep -E "\.js$|\.json$|\.php$|\.asp$|\.jsp$" > interesting_endpoints.txt
+```
+
+**Phase 3: Vulnerability Discovery (4-8 hours)**
+1. **Automated**: nuclei templates, parameter discovery
+2. **Manual**: Business logic, auth, session, crypto
+3. **Fuzzing**: ffuf on discovered endpoints/parameters
+4. **Client-side**: XSS, CSRF, CORS, postMessage, storage
+
+**Phase 4: Verification & PoC (2-4 hours)**
+1. Reproduce in clean environment
+2. Minimize impact (read-only, test accounts)
+3. Document exact steps, payloads, evidence
+4. Assess impact (CVSS, business context)
+
+**Phase 5: Reporting (1-2 hours)**
+1. Clear title, severity, affected asset
+2. Step-by-step reproduction
+3. PoC with sanitized evidence
+4. Remediation guidance
+5. References
+
+**Phase 6: Follow-up**
+1. Monitor for triage/response
+2. Provide additional info if requested
+3. Retest after fix
+4. Claim bounty
+
+**Continuous Monitoring:**
+- Set up nuclei alerts for new CVEs on target
+- Watch for new subdomains (subfinder -watch)
+- Monitor GitHub for new repos/commits
+- Track technology changes (whatweb diff)
+
+---PROMPT:RED_TEAM---
+## Red Team Operations
+
+**Objective**: Simulate advanced persistent threat (APT)
+
+**Framework**: MITRE ATT&CK, Cyber Kill Chain, Diamond Model
+
+**Phases:**
+
+### 1. Reconnaissance (TA0043)
+- OSINT, infrastructure mapping, employee enumeration
+- Credential harvesting (phishing, breaches, guessing)
+
+### 2. Resource Development (TA0042)
+- Domain registration, SSL certs, C2 infrastructure
+- Payload generation, obfuscation, AV/EDR evasion
+- Tool compilation, living-off-the-land binaries (LOLBAS/GTFOBins)
+
+### 3. Initial Access (TA0001)
+- Phishing (spear, whale, clone, QR code)
+- Exploit public-facing apps (RCE, SSRF, deserialization)
+- Valid accounts (credential stuffing, password spray)
+- Supply chain, removable media, drive-by compromise
+
+### 4. Execution (TA0002)
+- Command/script interpreters (PowerShell, Bash, Python)
+- Scheduled tasks, services, WMI, COM
+- User execution (malicious files, links)
+
+### 5. Persistence (TA0003)
+- Registry run keys, startup folder
+- Scheduled tasks, services, WMI event subscriptions
+- Account manipulation, SSH keys, golden tickets
+- Boot/autostart, kernel modules, firmware
+
+### 6. Privilege Escalation (TA0004)
+- Exploitation (kernel, driver, service misconfig)
+- Access token manipulation, bypass UAC
+- Abuse elevation control mechanism
+- Valid accounts (credential theft)
+
+### 7. Defense Evasion (TA0005)
+- Obfuscation, process injection, masquerading
+- Disable/modify tools, logs, artifacts
+- Rootkits, firmware, virtualization
+- Trusted developer utilities (LOLBAS)
+
+### 8. Credential Access (TA0006)
+- OS credential dumping (LSASS, SAM, keychain)
+- Network sniffing, MITM, forced auth
+- Keylogging, clipboard, web credentials
+- Forced authentication (PetitPotam, PrinterBug)
+
+### 9. Discovery (TA0007)
+- System, network, file, permission enumeration
+- Account, group, trust, software discovery
+- Cloud/container/K8s discovery
+
+### 10. Lateral Movement (TA0008)
+- Remote services (SMB, RDP, SSH, WinRM, DCOM)
+- Pass-the-hash/ticket, Kerberos delegation
+- Internal spearphishing, SSH hijacking
+- Lateral tool transfer
+
+### 11. Collection (TA0009)
+- Data from local/system/network/shared drives
+- Email, clipboard, keystrokes, audio/video
+- Archive collected data (staging)
+
+### 12. Command & Control (TA0011)
+- Application layer protocol (HTTP, DNS, WebSocket)
+- Proxy, domain fronting, fast flux
+- Encrypted channel, non-standard port
+- Dynamic resolution, multi-hop
+
+### 13. Exfiltration (TA0010)
+- Exfil over C2, alternative protocol
+- Scheduled transfer, size limits
+- Cloud storage, physical media
+
+### 14. Impact (TA0040)
+- Data destruction, encryption (ransomware)
+- Service stop, resource hijacking
+- Defacement, firmware corruption
+- Account access removal
+
+**Red Team Tools:**
+- C2: Sliver, Havoc, Covenant, Mythic, Brute Ratel
+- Payload: Donut, sRDI, Cobalt Strike BOF, Nim, Go, Rust
+- Evasion: AMSI bypass, ETW patching, PPID spoofing
+- LOLBAS/GTFOBins: Living off the land
+- AD: BloodHound, SharpHound, ADExplorer, ADFind
+
+---PROMPT:CTF_GUIDE---
+## CTF Challenge Solving Guide
+
+**Categories & Approaches:**
+
+### Web
+1. Source code review (View Source, DevTools)
+2. Directory/file enumeration (robots.txt, .git, backup files)
+3. Input validation testing (XSS, SQLi, SSTI, IDOR, SSRF)
+4. Authentication/Authorization flaws
+4. Client-side (DOM XSS, postMessage, storage, CSP bypass)
+5. API/GraphQL testing
+6. Race conditions, business logic
+
+### Crypto
+1. Identify algorithm (length, charset, structure)
+2. Known plaintext/ciphertext attacks
+3. Weak implementations (ECB, IV reuse, timing)
+4. Mathematical attacks (RSA small e, Wiener, Coppersmith)
+5. Side channels (padding oracle, timing)
+6. Custom crypto (roll your own = broken)
+
+### Reverse Engineering
+1. File analysis (file, strings, binwalk, foremost)
+2. Static analysis (Ghidra, IDA, radare2, cutter)
+3. Dynamic analysis (gdb, ltrace, strace, frida)
+4. Decompilation (pseudo-code review)
+5. Anti-debug/anti-VM bypass
+6. Patch/hook for flag extraction
+
+### Pwn/Binary Exploitation
+1. Recon: checksec, architecture, libc version
+2. Vuln classes: buffer overflow, format string, UAF, double free, heap
+3. Mitigations: ASLR, PIE, NX, RELRO, stack canaries, CFI
+4. Techniques: ROP, ret2libc, SROP, house of *, malloc internals
+5. Tools: pwntools, one_gadget, libc-database, ROPgadget
+
+### Forensics
+1. Disk/memory/image analysis (volatility, autopsy, ftk)
+2. File carving (foremost, scalpel, binwalk)
+3. Log analysis (EVTX, syslog, auditd)
+4. Network captures (wireshark, tshark, zeek)
+5. Registry, prefetch, shimcache, amcache
+6. Timeline analysis, artifact correlation
+
+### OSINT
+1. Username/email correlation across platforms
+2. Domain/IP/infrastructure mapping
+3. Document metadata extraction
+4. Social media intelligence
+5. Breach data correlation
+6. Geolocation, chronolocation
+
+### Misc/Coding
+1. Scripting challenges (Python, JS, Go)
+2. Algorithm/optimization
+3. Steganography (LSB, DCT, audio, video)
+4. Encoding/decoding chains
+5. Regex, parsing, format exploitation
+
+**Standard Toolkit:**
+```
+tool: checksec --file=binary
+tool: strings binary | grep -i flag
+tool: ghidra/ida/cutter for static analysis
+tool: gdb-pwndbg for dynamic
+tool: pwntools for exploit dev
+tool: volatility3 for memory forensics
+tool: wireshark/tshark for pcap
+tool: cyberchef for encoding/crypto
+```
+
+---PROMPT:VULN_RESEARCH---
+## Vulnerability Research Methodology
+
+**1. Target Selection**
+- High-value targets (widely used, critical infrastructure)
+- Recent changes (commits, releases, configs)
+- Complex parsers, deserializers, protocol handlers
+- Authentication/authorization logic
+- Cryptographic implementations
+
+**2. Code Audit Process**
+```
+tool: git clone target_repo
+tool: cd target_repo
+tool: semgrep --config=auto . --json=semgrep_results.json
+tool: codeql database create db --language=cpp
+tool: codeql database analyze db --format=sarif-latest --output=codeql_results.sarif
+tool: joern --script=taint_analysis.sc target_repo
+```
+
+**3. Fuzzing Campaign**
+- **Coverage-guided**: AFL++, libFuzzer, honggfuzz
+- **Structure-aware**: Grammar-based, protobuf, grammarinator
+- **Stateful**: Stateful fuzzing for protocols
+- **Hybrid**: Concolic execution (angr, Triton)
+- **Targets**: Parsers, codecs, compressors, crypto, network protocols
+
+**4. Root Cause Analysis**
+1. Crash triage (ASAN, MSAN, UBSAN, TSAN)
+2. Minimize test case (afl-tmin, halfempty)
+3. Debug with gdb/lldb + pwndbg
+4. Trace execution path
+5. Identify vulnerable function/line
+6. Assess exploitability (control flow, constraints)
+
+**5. Exploit Development**
+1. Proof-of-concept (crash → control)
+2. Bypass mitigations (ASLR, CFI, PAC, CET)
+3. Reliability (heap grooming, info leaks)
+4. Weaponization (ROP, JOP, COP, data-only)
+
+**6. Responsible Disclosure**
+1. Vendor contact (security@, bug bounty platform)
+2. Draft advisory (CVE request, timeline)
+3. Coordinated release (90 days standard)
+4. Credit attribution
+
+**Tools:**
+- Static: Semgrep, CodeQL, Joern, Slither, Mythril, Horusec
+- Dynamic: AFL++, libFuzzer, honggfuzz, angr, Triton
+- Debug: GDB, LLDB, pwndbg, gef, radare2
+- Binary: Ghidra, IDA Pro, Binary Ninja, Cutter
+- Emulation: QEMU, Unicorn, Firmadyne
+
+---PROMPT:TOOL_CHEATSHEET---
+## Essential Tool Cheatsheet
+
+### Recon & Discovery
+```
+subfinder -d target.com -all -recursive -o subs.txt
+amass enum -active -d target.com -brute -w wordlist.txt -o amass.txt
+assetfinder --subs-only target.com
+httpx -l subs.txt -title -tech-detect -sc -cl -ct -location -cdn -ip -asn -jarm -tls-grab -random-agent -silent -o live.json
+whatweb -a 3 -v target.com
+wafw00f target.com
+nmap -sS -sV -T4 -p- --min-rate=1000 target.com
+masscan -p1-65535 --rate=5000 target.com -oG masscan.gnmap
+naabu -host target.com -top-ports 1000 -silent
+```
+
+### Web Enumeration
+```
+ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirb/common.txt -mc 200,204,301,302,307,401,403,405,500 -t 50 -timeout 10
+gobuster dir -u https://target.com -w /usr/share/wordlists/dirb/big.txt -x php,html,js,txt,bak,zip,tar,gz -t 50
+feroxbuster -u https://target.com -w /usr/share/wordlists/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,html,js,txt -t 50
+katana -u https://target.com -d 3 -jc -kf -robots -sitemap -o katana_output.txt
+gau target.com | uro | gf xss | dalfox pipe
+waybackurls target.com | uro | gf sqli | sqlmap -m - --batch
+paramspider -d target.com -o params.txt
+arjun -u https://target.com/endpoint -o params.json
+```
+
+### Vulnerability Scanning
+```
+nuclei -u https://target.com -t cves/ -t vulnerabilities/ -t misconfiguration/ -t exposures/ -t takeovers/ -t fuzzing/ -severity critical,high,medium -o nuclei.txt
+nikto -h https://target.com -Tuning 123456789abc -o nikto.txt
+sqlmap -u "https://target.com/page?id=1" --batch --crawl=2 --random-agent --level=5 --risk=3
+xsstrike -u "https://target.com/search?q=test" --crawl -l 2
+dalfox url https://target.com --blind xss.rocks --mining-dom --mining-dict --mining-generic
+commix -u "https://target.com/page?id=1" --batch
+nuclei -t http/vulnerabilities/ -t http/cves/ -t http/misconfiguration/ -target target.com
+```
+
+### Network & AD
+```
+enum4linux -a target.com
+crackmapexec smb target_range -u user -p pass --shares --sessions --disks --loggedon-users --local-groups --rid-brute
+kerbrute userenum --dc target_dc domain_users.txt
+impacket-GetNPUsers domain/ -request -format hashcat -outputfile hashes.txt
+impacket-GetUserSPNs domain/user:pass -request -outputfile spns.txt
+ldapsearch -x -H ldap://target -b "dc=domain,dc=com" -D "user@domain.com" -w pass
+bloodhound-python -u user -p pass -ns dc_ip -d domain -c all
+```
+
+### SSL/TLS & Crypto
+```
+testssl.sh --fast --openSSL /usr/bin/openssl target.com
+sslscan --no-failed target.com:443
+openssl s_client -connect target.com:443 -servername target.com -tls1_2
+```
+
+### Cloud & Containers
+```
+aws s3 ls s3://bucket-name --no-sign-request
+aws s3 cp s3://bucket-name/key ./file --no-sign-request
+kube-hunter --remote target_ip
+kube-bench --checks=1.1,1.2,1.3
+trivy image nginx:latest
+trivy fs /path/to/project
+```
+
+### Post-Exploitation
+```
+linpeas.sh
+winpeas.exe
+pspy64
+./linenum.sh
+```
+
+---PROMPT:TERMINAL_EXECUTE---
+## Terminal Execution Protocol
+
+When user requests action, respond with:
+1. **Analysis** - Brief situation assessment
+2. **Plan** - Step-by-step approach
+3. **Commands** - Exact terminal commands in `tool:` blocks
+4. **Expected** - What to look for in output
+5. **Next** - Follow-up actions
+
+**Example Response:**
+```
+## Analysis
+Target appears to be a web application with potential IDOR vulnerability on /api/users/{id}/profile endpoint.
+
+## Plan
+1. Enumerate valid user IDs via API
+2. Test IDOR by accessing other users' profiles
+3. Document findings with evidence
+
+## Commands
+tool: curl -s "https://api.target.com/api/users/1/profile" -H "Authorization: Bearer $TOKEN" | jq .
+tool: for i in {1..100}; do curl -s "https://api.target.com/api/users/$i/profile" -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n" -o /dev/null; done | grep -v 404
+
+## Expected
+- 200 responses for valid user IDs
+- Profile data leakage for unauthorized access
+- Pattern in ID assignment (sequential, UUID)
+
+## Next
+- Test horizontal privilege escalation
+- Check for vertical escalation (admin endpoints)
+- Document all accessible user data fields
+```
